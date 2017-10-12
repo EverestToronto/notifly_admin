@@ -1334,9 +1334,11 @@ var DashboardComponent = (function () {
             this._router.navigate(['login']);
         }
         this.db.list('/trainers').subscribe(function (items) {
-            console.log('Got items: ', items);
+            // console.log('Got items: ', items);
+            console.log(items);
             _this.trainers_arr = items;
             _this.db.object('/trainers').subscribe(function (trainers) {
+                console.log(trainers);
                 _this._webService.trainers_arr = trainers;
             });
         });
@@ -1543,7 +1545,7 @@ ReadmePageComponent = __decorate([
 /***/ "../../../../../src/app/ui/schedule/schedule.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"content columns\">\n  <div class=\"column is-10 is-offset-1 jumbo\">\n    <h2 class=\"\">View & Delete Appointments</h2>\n\n\n    <div class=\"day\" *ngFor=\"let day of scheduleMultArr\">\n      <h4>{{day.date}}</h4>\n      <div class=\"available_slots columns\">\n        <div class=\"column is-4 slot\" *ngFor=\"let appointment of day.appointments\">\n          <p>Start: {{appointment.humanTime}}</p>\n          <p>User: {{appointment.userName}}</p>\n          <p>Email: {{appointment.userEmail}}</p>\n          <p>Phone: {{appointment.userPhone}}</p>\n          <button (click)=\"deleteAppointment(day)\" class=\"button\">Delete</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n"
+module.exports = "<div class=\"content columns\">\n  <div class=\"column is-10 is-offset-1 jumbo\">\n    <h2 class=\"\">View & Delete Appointments</h2>\n\n\n    <div class=\"day\" *ngFor=\"let day of scheduleMultArr\">\n      <h4>{{day.date_human}}</h4>\n      <div class=\"available_slots columns\">\n        <div class=\"column is-4 slot\" *ngFor=\"let appointment of day.appointments\">\n          <p>Start: {{appointment.humanTime}}</p>\n          <p>User: {{appointment.userName}}</p>\n          <p>Email: {{appointment.userEmail}}</p>\n          <p>Phone: {{appointment.userPhone}}</p>\n          <button (click)=\"deleteAppointment(day)\" class=\"button\">Delete</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n"
 
 /***/ }),
 
@@ -1555,7 +1557,7 @@ exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-b
 
 
 // module
-exports.push([module.i, ".day {\n  background: #d2d2d2;\n  padding-top: 1em;\n  padding-bottom: 1em;\n  border-radius: 11px;\n  margin-bottom: 1em; }\n  .day h4 {\n    margin-left: 1em; }\n  .day .add_btn {\n    display: block;\n    margin-left: 1em; }\n  .day .slot {\n    text-align: center; }\n    .day .slot p {\n      margin-bottom: 0; }\n\n.s-background-color {\n  /*background-color: rgba(238, 238, 238, 1);*/\n  background-size: cover;\n  position: relative;\n  top: -2px;\n  /*background-color: #414345;*/ }\n", ""]);
+exports.push([module.i, ".day {\n  background: #d2d2d2;\n  padding-bottom: 1em;\n  margin-bottom: 1em; }\n  .day h4 {\n    background: #b0daff;\n    padding: 1em 1em; }\n  .day .add_btn {\n    display: block;\n    margin-left: 1em; }\n  .day .slot {\n    text-align: center;\n    max-width: 31.3%;\n    margin-left: 1%;\n    margin-right: 1%; }\n    .day .slot p {\n      margin-bottom: 0; }\n\n.s-background-color {\n  /*background-color: rgba(238, 238, 238, 1);*/\n  background-size: cover;\n  position: relative;\n  top: -2px;\n  /*background-color: #414345;*/ }\n", ""]);
 
 // exports
 
@@ -1608,32 +1610,42 @@ var ScheduleComponent = (function () {
             }
             else {
                 _this.trainer_schedule = _this._webService.trainers_arr[_this.trainer_key]['schedule'];
-                console.log(_this.trainer_schedule);
+                // console.log(this.trainer_schedule);
                 _this.populateMultArr();
             }
         });
     };
     ScheduleComponent.prototype.populateMultArr = function () {
         var today = new Date();
-        var date = 28;
-        var counter = 0;
-        for (var i = 0; i < 7; i++) {
-            var currDate = date + counter;
-            var checkDate = '2017-09-' + currDate;
-            // console.log(checkDate);
-            counter++;
-            if (this.trainer_schedule[checkDate]) {
+        var dateInt = today.getDate();
+        var monthInt = today.getMonth() + 1;
+        var year = today.getFullYear();
+        var date = (dateInt < 10) ? ('0' + dateInt) : dateInt;
+        var month = (monthInt < 10) ? ('0' + monthInt) : monthInt;
+        var date = (dateInt < 10) ? ('0' + dateInt) : dateInt;
+        var month = (monthInt < 10) ? ('0' + monthInt) : monthInt;
+        var todayDate = year + '-' + month + '-' + date;
+        // Go through each entry in the trainer_schedule
+        for (var key in this.trainer_schedule) {
+            if (todayDate <= key) {
+                // console.log(key);
+                this._SchedService.getHumanDate(key);
                 var dateObj = {
-                    date: checkDate,
-                    appointments: []
+                    date: key,
+                    appointments: [],
+                    date_human: this._SchedService.getHumanDate(key)
                 };
-                for (var key in this.trainer_schedule[checkDate]) {
-                    dateObj.appointments.push(this.trainer_schedule[checkDate][key]);
+                for (var key1 in this.trainer_schedule[key]) {
+                    dateObj.appointments.push(this.trainer_schedule[key][key1]);
                 }
                 this.scheduleMultArr.push(dateObj);
             }
+            // console.log(this.scheduleMultArr);
         }
-        console.log(this.scheduleMultArr);
+    };
+    ScheduleComponent.prototype.deleteAppointment = function (day) {
+        console.log(day);
+        alert("This features coming soon! - The Notifly Team");
     };
     return ScheduleComponent;
 }());
@@ -1770,6 +1782,41 @@ var ScheduleService = (function () {
         }
         timeInSec += (min * 60);
         return timeInSec;
+    };
+    ScheduleService.prototype.getHumanDate = function (numerical_date) {
+        var dateArr = numerical_date.split('-');
+        var monthNum = parseInt(dateArr[1]);
+        return dateArr[0] + '-' + this.getMonthFromMonthIndex(monthNum) + '-' + dateArr[2];
+    };
+    ScheduleService.prototype.getMonthFromMonthIndex = function (month_index) {
+        switch (month_index) {
+            case 1:
+                return 'January';
+            case 2:
+                return 'February';
+            case 3:
+                return 'March';
+            case 4:
+                return 'April';
+            case 5:
+                return 'May';
+            case 6:
+                return 'June';
+            case 7:
+                return 'July';
+            case 8:
+                return 'August';
+            case 9:
+                return 'September';
+            case 10:
+                return 'October';
+            case 11:
+                return 'November';
+            case 12:
+                return 'December';
+            default:
+                return false;
+        }
     };
     return ScheduleService;
 }());
